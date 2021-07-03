@@ -107,4 +107,4 @@ dist
 /build
 
 #Уберу токен на всякий 
-#src/configs/tokens
+src/configs/tokens
