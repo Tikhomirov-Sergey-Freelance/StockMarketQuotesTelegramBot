@@ -4,28 +4,78 @@ import Binance from '../../code/binance'
 import { ticker24ToMessage } from './parser'
 import { iResult } from '../../interfaces/common'
 import { i24Ticker } from '../../interfaces/binance'
+import { investingLinkNews } from '../../code/links'
+import { referralBinance } from '../../configs/common'
+import { TICKER_INLINE_KEYBOARD } from '../../constants/ticker'
+import { prepareTickers } from '../../code/tickers'
+import UserHelper from '../../models/user/helper'
 
-export const tickerAction = async (message: TelegramBot.Message, [source, ticker]: RegExpExecArray) => {
+export const tickerAction = async (message: TelegramBot.Message, [source, tickersString]: RegExpExecArray) => {
 
     const chatId = message.chat.id
+    const telegramId = message.from.id
 
-    ticker = ticker.trim().toUpperCase()
+    const tickersSymbols = prepareTickers(tickersString)
 
-    if(!ticker) {
-        return BotProwider.bot.sendMessage(chatId, 'Чтобы получить курс интересующей криптовалюты, пожалуйста, перечислите тикеры через запятую\nПопулярные тикеры: BTC, ETH, XRP, ADA, DOGE')
+    if(!tickersSymbols.length) {
+        return help(message)
     }
     
-    const waitMessage = await BotProwider.bot.sendMessage(chatId, 'Cпасибо за запрос!!!\nЗагружаю...')
+    const deleteWaitMessage = await BotProwider.sendMessageAndDeleteCallback(message, 'Cпасибо за запрос!!!\nЗагружаю...')
     
-    const tickersSymbols = ticker.split(',').map(ticker => ticker.trim())
-    const tickers = await Promise.all(tickersSymbols.map(symbol => Binance.ticker24(symbol)))
-    
-    BotProwider.bot.deleteMessage(chatId, waitMessage.message_id.toString())
+    let tickers = await Promise.all(tickersSymbols.map(symbol => Binance.ticker24(symbol)))
+
+    deleteWaitMessage()
+    tickers = await sendTickers24Errors(message, tickers)
+
+    const favoriteTickers = (await UserHelper.favoriteTickers(telegramId)).result
+
+    tickers.map(ticker => {
+
+        const isFavorite = favoriteTickers.some(favoriteTicker => ticker.ticker === favoriteTicker)
+        const text = ticker24ToMessage(ticker.ticker, ticker.result.rub, ticker.result.usd)
+
+        return BotProwider.bot.sendMessage(chatId, text, {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: 'Новости',
+                            url: investingLinkNews(ticker.ticker)
+                        }
+                    ],
+                    [
+                        {
+                            text: 'Биржа',
+                            url: referralBinance
+                        }
+                    ],
+                    [
+                        {
+                            text: isFavorite ? 'Удалить из избранного' : 'В избранное',
+                            callback_data: JSON.stringify({ type: TICKER_INLINE_KEYBOARD.TOOGLE_FAVORITE, isFavorite })
+                        }
+                    ]
+                ]
+            }
+        })
+    })
+}
+
+export const help = (message: TelegramBot.Message) => {
+    const chatId = message.chat.id
+    return BotProwider.bot.sendMessage(chatId, 'Чтобы получить курс интересующей криптовалюты, пожалуйста, введите команду /ticker и перечислите тикеры через запятую\nПопулярные тикеры: BTC, ETH, XRP, ADA, DOGE')
+}
+
+const sendTickers24Errors = async (message: TelegramBot.Message, tickers) => {
+
+    const chatId = message.chat.id
 
     const allErrors = tickers.every(result => result.error)
 
     if(allErrors) {
-        return BotProwider.bot.sendMessage(chatId, 'Упс, не нашел тикеры:((\nПожалуйста, проверье правильность')
+        await BotProwider.bot.sendMessage(chatId, 'Не нашел тикеры:((\nПожалуйста, проверьте правильность ввода')
+        return []
     }
 
     const withErrors = tickers.filter(result => result.error)
@@ -35,12 +85,8 @@ export const tickerAction = async (message: TelegramBot.Message, [source, ticker
         const pluralSymbol = withErrors.length === 1 ? '' : 'ы'
         const tickers = withErrors.map(ticker => ticker.ticker).join(', ')
         
-        await BotProwider.bot.sendMessage(chatId, `Упс, тикер${pluralSymbol} ${tickers} не удалось найти :((`)
+        await BotProwider.bot.sendMessage(chatId, `Тикер${pluralSymbol} ${tickers} не удалось найти :((`)
     }
 
-    return tickers.map(ticker => {
-
-        const text = ticker24ToMessage(ticker.ticker, ticker.result.rub, ticker.result.usd)
-        return BotProwider.bot.sendMessage(chatId, text)
-    })
+    return tickers.filter(ticker => !ticker.error)
 }
