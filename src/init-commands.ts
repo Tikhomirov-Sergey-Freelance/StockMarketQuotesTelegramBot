@@ -1,7 +1,7 @@
-import testCommands from './commands/test-commands'
+import criptocurrencyCommands from './commands/criptocurrency'
 
 export default () => {
 
-    testCommands()
-
+    criptocurrencyCommands()
+    
 }
