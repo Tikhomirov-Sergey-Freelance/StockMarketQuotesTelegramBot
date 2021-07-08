@@ -3,7 +3,7 @@ import * as TelegramBot from 'node-telegram-bot-api'
 import { telegramToken } from './configs/tokens'
 import BotProwider from './code/bot'
 
-export default () => {
+export default async () => {
     
     BotProwider.bot = new TelegramBot(telegramToken, {
         polling: {
@@ -13,5 +13,10 @@ export default () => {
                 timeout: 10
             }
         }
+    })
+
+    BotProwider.bot.on('polling_error', async () => {
+        await BotProwider.bot.stopPolling()
+        BotProwider.bot.startPolling()
     })
 }

@@ -1,14 +1,11 @@
 import * as TelegramBot from 'node-telegram-bot-api'
-import BotProwider from '../../code/bot'
-import Binance from '../../code/binance'
-import { ticker24ToMessage } from './parser'
-import { iResult } from '../../interfaces/common'
-import { i24Ticker } from '../../interfaces/binance'
-import { investingLinkNews } from '../../code/links'
-import { referralBinance } from '../../configs/common'
-import { TICKER_INLINE_KEYBOARD } from '../../constants/ticker'
-import { prepareTickers } from '../../code/tickers'
-import UserHelper from '../../models/user/helper'
+import BotProwider from '../../../code/bot'
+import Binance from '../../../code/binance'
+import { ticker24ToMessage } from '../parser'
+import { investingLinkNews } from '../../../code/links'
+import { TICKER_INLINE_KEYBOARD } from '../../../constants/ticker'
+import { prepareTickers } from '../../../code/tickers'
+import UserHelper from '../../../models/user/helper'
 
 export const tickerAction = async (message: TelegramBot.Message, [source, tickersString]: RegExpExecArray) => {
 
@@ -18,17 +15,17 @@ export const tickerAction = async (message: TelegramBot.Message, [source, ticker
     const tickersSymbols = prepareTickers(tickersString)
 
     if(!tickersSymbols.length) {
-        return help(message)
+        return helpTicker24(message)
     }
     
     const deleteWaitMessage = await BotProwider.sendMessageAndDeleteCallback(message, 'Cпасибо за запрос!!!\nЗагружаю...')
     
     let tickers = await Promise.all(tickersSymbols.map(symbol => Binance.ticker24(symbol)))
 
-    deleteWaitMessage()
     tickers = await sendTickers24Errors(message, tickers)
 
     const favoriteTickers = (await UserHelper.favoriteTickers(telegramId)).result
+    deleteWaitMessage()
 
     tickers.map(ticker => {
 
@@ -46,14 +43,8 @@ export const tickerAction = async (message: TelegramBot.Message, [source, ticker
                     ],
                     [
                         {
-                            text: 'Биржа',
-                            url: referralBinance
-                        }
-                    ],
-                    [
-                        {
                             text: isFavorite ? 'Удалить из избранного' : 'В избранное',
-                            callback_data: JSON.stringify({ type: TICKER_INLINE_KEYBOARD.TOOGLE_FAVORITE, isFavorite })
+                            callback_data: JSON.stringify({ type: TICKER_INLINE_KEYBOARD.TOOGLE_FAVORITE, addFavorite: !isFavorite, ticker: ticker.ticker })
                         }
                     ]
                 ]
@@ -62,7 +53,7 @@ export const tickerAction = async (message: TelegramBot.Message, [source, ticker
     })
 }
 
-export const help = (message: TelegramBot.Message) => {
+export const helpTicker24 = (message: TelegramBot.Message) => {
     const chatId = message.chat.id
     return BotProwider.bot.sendMessage(chatId, 'Чтобы получить курс интересующей криптовалюты, пожалуйста, введите команду /ticker и перечислите тикеры через запятую\nПопулярные тикеры: BTC, ETH, XRP, ADA, DOGE')
 }
