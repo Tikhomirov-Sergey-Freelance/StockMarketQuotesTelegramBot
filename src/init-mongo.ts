@@ -3,7 +3,7 @@ import { mongoUrl } from './configs/common'
 
 export default () => {
 
-    Mongoose.connect(mongoUrl, {}, (error) => {
+    Mongoose.connect(mongoUrl, { useNewUrlParser: true }, (error) => {
 
         if (error) {
             throw new Error(`Mongo connect error. ${error}`)

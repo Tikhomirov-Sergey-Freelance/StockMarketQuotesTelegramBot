@@ -3,22 +3,25 @@ import { mongooseRequest } from '../../code/mongoose-request'
 
 export default class UserHelper {
 
-    static toggleFavorite(telegramId: number, tickers: string[], mode: 'add' | 'remove' = 'add') {
+    static toggleFavorite(telegramId: number, tickers: string[], addFavorite: boolean) {
 
         return mongooseRequest(async () => {
 
             let { result: user } = await this.findUserById(telegramId)
-
+            try {
             if(!user) {
 
-                if(mode === 'add') {
+                if(addFavorite) {
                     await new Schema({ telegramId, favoriteTickers: tickers }).save()
                 }
 
                 return true
             }
+        }catch(error) {
+            console.log(error)
+        }
             
-            if(mode === 'add') {
+            if(addFavorite) {
                 user.favoriteTickers.push(...tickers)
                 user.favoriteTickers = [...new Set(user.favoriteTickers)]
             } else {
