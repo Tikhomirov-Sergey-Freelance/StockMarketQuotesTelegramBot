@@ -108,3 +108,5 @@ dist
 
 #Уберу токен на всякий 
 src/configs/tokens
+
+deploy/crypto/privatekey.ppk
