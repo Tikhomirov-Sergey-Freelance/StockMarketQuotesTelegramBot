@@ -19,4 +19,6 @@ export default async () => {
         await BotProwider.bot.stopPolling()
         BotProwider.bot.startPolling()
     })
+
+    BotProwider.listener.listenMessages()
 }

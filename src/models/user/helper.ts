@@ -9,19 +9,19 @@ export default class UserHelper {
 
             let { result: user } = await this.findUserById(telegramId)
             try {
-            if(!user) {
+                if (!user) {
 
-                if(addFavorite) {
-                    await new Schema({ telegramId, favoriteTickers: tickers }).save()
+                    if (addFavorite) {
+                        await new Schema({ telegramId, favoriteTickers: tickers }).save()
+                    }
+
+                    return true
                 }
-
-                return true
+            } catch (error) {
+                console.log(error)
             }
-        }catch(error) {
-            console.log(error)
-        }
-            
-            if(addFavorite) {
+
+            if (addFavorite) {
                 user.favoriteTickers.push(...tickers)
                 user.favoriteTickers = [...new Set(user.favoriteTickers)]
             } else {
@@ -44,6 +44,34 @@ export default class UserHelper {
 
         return mongooseRequest(async () => {
             return Schema.findOne({ telegramId })
+        })
+    }
+
+    static findOrCreateUser(telegramId: number) {
+
+        return mongooseRequest(async () => {
+
+            let { result: user, error: findUserError } = await this.findUserById(telegramId)
+
+            if(findUserError) {
+                throw new Error(findUserError)
+            }
+
+            if (user) return user
+
+            const { error, result: newUser } = await this.createUser({ telegramId })
+
+            if(error) {
+                throw new Error(error)
+            }
+
+            return newUser
+        })
+    }
+
+    static createUser(user: iUser) {
+        return mongooseRequest(async () => {
+            return await new Schema(user).save()
         })
     }
 }

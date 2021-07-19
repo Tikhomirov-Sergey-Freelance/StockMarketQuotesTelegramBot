@@ -10,6 +10,10 @@ export default () => {
         tickerAction(message, match)
     })
 
+    BotProwider.bot.onText(/Избранные тикеры/, (message) => {
+        showFavoritesAction(message)
+    })
+
     BotProwider.bot.on('callback_query', query => {
 
         const data = JSON.parse(query.data)
@@ -21,9 +25,5 @@ export default () => {
                 break
         }
 
-    })
-
-    BotProwider.bot.onText(/Избранные тикеры/, (message) => {
-        showFavoritesAction(message)
     })
 }

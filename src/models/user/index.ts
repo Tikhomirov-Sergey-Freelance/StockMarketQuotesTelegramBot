@@ -1,8 +1,9 @@
 import { Schema, model } from 'mongoose'
+import Helper from './helper'
 
 export interface iUser {
-    telegramId: number,
-    favoriteTickers: string[]
+    telegramId: number
+    favoriteTickers?: string[]
 }
 
 const UserSchema = new Schema<iUser>({
@@ -17,4 +18,5 @@ const UserSchema = new Schema<iUser>({
     }
 })
 
+export const helper = Helper
 export default model<iUser>('users', UserSchema)
