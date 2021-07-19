@@ -1,5 +1,5 @@
 import BotProwider from '../../code/bot'
-import { startAction, helpAction } from './actions'
+import { startAction, helpAction, backAction } from './actions'
 
 export default () => {
 
@@ -9,5 +9,9 @@ export default () => {
 
     BotProwider.bot.onText(/\/help/, (message) => {
         helpAction(message)
+    })
+
+    BotProwider.bot.onText(/Назад/, (message) => {
+        backAction(message)
     })
 }
